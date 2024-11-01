@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stream Control</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Multi-Camera System Control</h1>
+    </header>
+    
+    <nav>
+        <button id="recordTabButton">Recording</button>
+        <button id="streamTabButton">Streaming</button>
+    </nav>
+
+    <main>
+        <!-- Recording tab -->
+        <section id="recordTab">
+            <h2>Recording</h2>
+            <p>Recording: <span id="recording">{{ recording }}</span></p>
+            <form id="recordForm" action="#" method="post">
+                <div class="form-group">
+                    <label for="subjectNumber">Subject:</label>
+                    <input type="number" id="subjectNumber" name="subjectNumber" value="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="actionNumber">Action:</label>
+                    <select id="actionNumber" name="actionNumber" class="styled-input">
+                        <option value="0" selected>0: Markers</option>
+                        <option value="1" selected>1: Walk</option>
+                        <option value="2">2: Burpee</option>
+                        <option value="3">3: Squat</option>
+                        <option value="4">4: Deadlift</option>
+                        <option value="5">5: Lunge</option>
+                        <option value="6">6: Shoulder Press</option>
+                        <option value="7">7: Push-Up</option>
+                        <option value="8">8: Squat Jump</option>
+                        <option value="9">9: Star Jump</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="durationNumber">Duration:</label>
+                    <select id="durationNumber" name="durationNumber" class="styled-input">
+                        <option value="1" selected>1: Slow</option>
+                        <option value="2">2: Normal</option>
+                        <option value="3">3: Fast</option>
+                    </select>
+                </div>
+                
+                <button type="button" id="setControls">Set Controls</button>
+                <button type="button" id="setTime">Set Time</button>
+                <button type="button" id="startRecordingButton">Start Recording</button>
+                <button type="button" id="stopRecordingButton">Stop Recording</button>
+                <button type="button" id="transferVideoButton">Transfer Video</button>
+                
+                <div class="form-group">
+                    <label for="cameraNumber">Camera origin:</label>
+                    <input type="number" id="cameraNumber" name="cameraNumber" value="1">
+                    <label for="cameraNumber2">Camera pair:</label>
+                    <input type="number" id="cameraNumber2" name="cameraNumber2" value="2">
+                </div>
+                <button type="button" id="calibrateButton">Record calibration</button>
+                <button type="button" id="calibrateGroupButton">Record grouped calibration</button>
+                <button type="button" id="calibrateButtonSingle">Record calibration signle</button>
+                <button type="button" id="calibrateGroupButtonSingle">Record grouped calibration signle</button>
+                <button type="button" id="calibrateGroupButtonSingleRepeat">Record grouped calibration signle repeat</button>
+                <button type="button" id="transferAllButton">Transfer all data</button>
+            </form>
+            
+            <!-- Display circles for cameras -->
+            <div id="cameraStatus">
+                <div class="circle" id="camera0"></div>
+                <div class="circle" id="camera1"></div>
+                <div class="circle" id="camera2"></div>
+                <div class="circle" id="camera3"></div>
+                <div class="circle" id="camera4"></div>
+                <div class="circle" id="camera5"></div>
+            </div>
+
+            <div id="countdown" style="display: none;">
+                <p>Recording Calibration: <span id="timer">30</span> seconds</p>
+            </div>
+            <div id="calibrationStatus">
+                <p>Timer: <span id="timer_repeat" style="font-size: 100px;">5</span> seconds</p>
+                <p>Count: <span id="count" style="font-size: 100px;">0</span>/60</p>
+            </div>            
+
+        </section>
+
+        <!-- Streaming tab -->
+        <section id="streamTab" style="display: none;">
+            <h2>Streaming</h2>
+            <p>Streaming: <span id="streaming">{{ streaming }}</span></p>
+            <form id="streamForm" action="#" method="post">
+                <button type="button" id="startButton">Start Stream</button>
+                <button type="button" id="stopButton">Stop Stream</button>
+            </form>
+
+            <!-- Display the video streams in a 2x3 grid -->
+            <div class="video-grid">
+                <!-- Initialize image sources with 'placeholder.jpg' -->
+                <img id="image0" alt="Image 0" src="{{ url_for('static', filename='placeholder.jpg') }}">
+                <img id="image1" alt="Image 1" src="{{ url_for('static', filename='placeholder.jpg') }}">
+                <img id="image2" alt="Image 2" src="{{ url_for('static', filename='placeholder.jpg') }}">
+                <img id="image3" alt="Image 3" src="{{ url_for('static', filename='placeholder.jpg') }}">
+                <img id="image4" alt="Image 4" src="{{ url_for('static', filename='placeholder.jpg') }}">
+                <img id="image5" alt="Image 5" src="{{ url_for('static', filename='placeholder.jpg') }}">
+            </div>
+        </section>
+    </main>
+
+
+    <script>
+
+        // Function to switch to the Streaming tab
+        document.getElementById('streamTabButton').addEventListener('click', function () {
+            document.getElementById('streamTab').style.display = 'block';
+            document.getElementById('recordTab').style.display = 'none';
+        });
+
+        // Function to switch to the Recording tab
+        document.getElementById('recordTabButton').addEventListener('click', function () {
+            document.getElementById('recordTab').style.display = 'block';
+            document.getElementById('streamTab').style.display = 'none';
+            // isStreaming = false;
+            // handleStreamButtonClick([0, 1, 2, 3, 4, 5], false);
+            // stopFetchingFrames();
+
+            // // Update all image elements to display 'placeholder.jpg'
+            // for (let i = 0; i < 6; i++) {
+            //     const imageElement = document.getElementById(`image${i}`);
+            //     if (imageElement) {
+            //         imageElement.src = "{{ url_for('static', filename='placeholder.jpg') }}";
+            //     }
+            // }
+        });
+
+        document.getElementById('setControls').addEventListener('click', function () {
+            setControls();
+            
+        });
+
+        // Function to handle the "Start Recording" button click
+        document.getElementById('startRecordingButton').addEventListener('click', function () {
+            handleRecordingButtonClick(true);
+            document.getElementById("subjectNumber").disabled = true;
+            document.getElementById("actionNumber").disabled = true;
+            document.getElementById("durationNumber").disabled = true;
+            document.getElementById("startRecordingButton").disabled = true;
+            document.getElementById("transferVideoButton").disabled = true;
+            document.getElementById("cameraNumber").disabled = true;
+            document.getElementById("calibrateButton").disabled = true;
+            document.getElementById("calibrateGroupButton").disabled = true;
+            startPollingRecordingStatus();
+        });
+
+        // Function to handle the "Stop Recording" button click
+        document.getElementById('stopRecordingButton').addEventListener('click', function () {
+            handleRecordingButtonClick(false);
+            stopPollingRecordingStatus(); // Stop the polling mechanism
+            resetCameraStatusCircles(); // Reset the camera circles to red
+            document.getElementById("subjectNumber").disabled = false;
+            document.getElementById("actionNumber").disabled = false;
+            document.getElementById("durationNumber").disabled = false;
+            document.getElementById("startRecordingButton").disabled = false;
+            document.getElementById("transferVideoButton").disabled = false;
+            document.getElementById("cameraNumber").disabled = false;
+            document.getElementById("calibrateButton").disabled = false;
+            document.getElementById("calibrateGroupButton").disabled = false;
+        });
+
+        function setControls() {
+            // Send a POST request to Flask endpoint without any data
+            fetch('/set_controls', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Handle success (e.g., display a success message)
+                    console.log('Controls set successfully.');
+                } else {
+                    // Handle failure (e.g., display an error message)
+                    console.error('Setting controls failed.');
+                }
+            })
+            .catch(error => {
+                console.error('An error occurred:', error);
+            });
+        }
+
+        document.getElementById('setTime').addEventListener('click', function () {
+            setTimes();
+            
+        });
+
+        function setTimes() {
+            // Send a POST request to Flask endpoint without any data
+            fetch('/sync_time', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Handle success (e.g., display a success message)
+                    console.log('Time set successfully.');
+                } else {
+                    // Handle failure (e.g., display an error message)
+                    console.error('Setting time failed.');
+                }
+            })
+            .catch(error => {
+                console.error('An error occurred:', error);
+            });
+        }
+
+
+        let recordingStatusPollingInterval;
+
+        function updateCameraStatus(recordingList) {
+            for (let i = 0; i < 6; i++) {
+                const circleElement = document.getElementById(`camera${i}`);
+                if (circleElement) {
+                    if (recordingList[i]) {
+                        circleElement.classList.remove('red');
+                        circleElement.classList.add('green');
+                    } else {
+                        circleElement.classList.remove('green');
+                        circleElement.classList.add('red');
+                    }
+                }
+            }
+        }
+
+        function resetCameraStatusCircles() {
+            for (let i = 0; i < 6; i++) {
+                const circleElement = document.getElementById(`camera${i}`);
+                if (circleElement) {
+                    circleElement.classList.remove('green');
+                    circleElement.classList.add('red');
+                }
+            }
+        }
+
+        function startPollingRecordingStatus() {
+            // Polling interval set to 0.5 seconds (500 milliseconds)
+            recordingStatusPollingInterval = setInterval(() => {
+                fetch('/get_recording_status', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Update the recording and streaming lists with the received data
+                    const recordingList = data.recording;
+                    updateCameraStatus(recordingList);
+                    // Use the data as needed, for example:
+                    console.log('Recording List:', recordingList);
+                    // Update your HTML elements or perform other actions here
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }, 500); // Polling interval in milliseconds
+        }
+
+        function stopPollingRecordingStatus() {
+            // Clear the polling interval when stopping recording
+            clearInterval(recordingStatusPollingInterval);
+        }
+
+        document.getElementById("calibrateButton").addEventListener("click", function() {
+            // Disable the button to prevent multiple clicks
+            this.disabled = true;
+
+            // Show the countdown timer
+            document.getElementById("countdown").style.display = "block";
+
+            // Get the camera number from the select element
+            const cameraNumber = document.getElementById("cameraNumber").value;
+            
+            // Change the color of the camera circle to green
+            document.getElementById(`camera${cameraNumber-1}`).classList.remove("red");
+            document.getElementById(`camera${cameraNumber-1}`).classList.add("green");
+
+            document.getElementById("cameraNumber").disabled = true;
+
+            // Start the calibration function
+            recordCalibration();
+
+            // Start the 30-second countdown
+            let countdown = 35;
+            const timerElement = document.getElementById("timer");
+
+            const timerInterval = setInterval(function() {
+                countdown--;
+                timerElement.textContent = countdown;
+
+                if (countdown === 0) {
+                    clearInterval(timerInterval);
+                    // Re-enable the button after 30 seconds
+                    document.getElementById("calibrateButton").disabled = false;
+                    // Hide the countdown element after 30 seconds
+                    document.getElementById("countdown").style.display = "none";
+
+                    // Change the color of the camera circle to red
+                    document.getElementById(`camera${cameraNumber-1}`).classList.remove("green");
+                    document.getElementById(`camera${cameraNumber-1}`).classList.add("red");
+
+                    document.getElementById("cameraNumber").disabled = false;
+                }
+            }, 1000);
+        });
+
+        document.getElementById("calibrateGroupButton").addEventListener("click", function() {
+            // Disable the button to prevent multiple clicks
+            this.disabled = true;
+
+            // Show the countdown timer
+            document.getElementById("countdown").style.display = "block";
+
+            // Get the camera number from the select element
+            const cameraNumber = document.getElementById("cameraNumber").value;
+            const cameraNumber2 = document.getElementById("cameraNumber2").value;
+            
+            // Change the color of the camera circle to green
+            document.getElementById(`camera${cameraNumber-1}`).classList.remove("red");
+            document.getElementById(`camera${cameraNumber-1}`).classList.add("green");
+            document.getElementById("cameraNumber").disabled = true;
+            document.getElementById(`camera${cameraNumber2-1}`).classList.remove("red");
+            document.getElementById(`camera${cameraNumber2-1}`).classList.add("green");
+            document.getElementById("cameraNumber2").disabled = true;
+
+            // Start the calibration function
+            recordGroupCalibration();
+
+            // Start the 30-second countdown
+            let countdown = 35;
+            const timerElement = document.getElementById("timer");
+
+            const timerInterval = setInterval(function() {
+                countdown--;
+                timerElement.textContent = countdown;
+
+                if (countdown === 0) {
+                    clearInterval(timerInterval);
+                    // Re-enable the button after 30 seconds
+                    document.getElementById("calibrateButton").disabled = false;
+                    document.getElementById("calibrateGroupButton").disabled = false;
+                    // Hide the countdown element after 30 seconds
+                    document.getElementById("countdown").style.display = "none";
+
+                    // Change the color of the camera circle to red
+                    document.getElementById(`camera${cameraNumber-1}`).classList.remove("green");
+                    document.getElementById(`camera${cameraNumber-1}`).classList.add("red");
+                    document.getElementById(`camera${cameraNumber2-1}`).classList.remove("green");
+                    document.getElementById(`camera${cameraNumber2-1}`).classList.add("red");
+
+                    document.getElementById("cameraNumber").disabled = false;
+                    document.getElementById("cameraNumber2").disabled = false;
+                }
+            }, 1000);
+        });
+
+
+        function recordCalibration() {
+            // Prepare data to send to the Flask endpoint
+            const subjectNumber = document.getElementById("subjectNumber").value;
+            const actionNumber = document.getElementById("actionNumber").value;
+            const durationNumber = document.getElementById("durationNumber").value;
+            const cameraNumber = document.getElementById("cameraNumber").value;
+            const data = {
+                subjectNumber: subjectNumber,
+                actionNumber: actionNumber,
+                durationNumber: durationNumber,
+                cameraNumber: cameraNumber
+            };
+
+            // Send a POST request to Flask endpoint
+            fetch('/record_calibration', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Handle success (e.g., display a success message)
+                    console.log('Calibration recorded successfully.');
+                } else {
+                    // Handle failure (e.g., display an error message)
+                    console.error('Calibration recording failed.');
+                }
+            })
+            .catch(error => {
+                console.error('An error occurred:', error);
+            });
+        }
+
+        function recordGroupCalibration() {
+            // Prepare data to send to the Flask endpoint
+            const subjectNumber = document.getElementById("subjectNumber").value;
+            const actionNumber = document.getElementById("actionNumber").value;
+            const durationNumber = document.getElementById("durationNumber").value;
+            const cameraNumber = document.getElementById("cameraNumber").value;
+            const cameraNumber2 = document.getElementById("cameraNumber2").value;
+            const data = {
+                subjectNumber: subjectNumber,
+                actionNumber: actionNumber,
+                durationNumber: durationNumber,
+                cameraNumber: cameraNumber,
+                cameraNumber2: cameraNumber2
+            };
+
+            // Send a POST request to Flask endpoint
+            fetch('/record_group_calibration', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Handle success (e.g., display a success message)
+                    console.log('Calibration recorded successfully.');
+                } else {
+                    // Handle failure (e.g., display an error message)
+                    console.error('Calibration recording failed.');
+                }
+            })
+            .catch(error => {
+                console.error('An error occurred:', error);
+            });
+        }
+
+        document.getElementById("calibrateButtonSingle").addEventListener("click", function() {
+            // Start the calibration function
+            recordCalibrationSingle();
+
+        });
+
+        document.getElementById("calibrateGroupButtonSingle").addEventListener("click", function() {
+            // Start the calibration function
+            recordGroupCalibrationSingle();
+        });
+
+
+        // document.getElementById("calibrateGroupButtonSingleRepeat").addEventListener("click", function() {
+        //     var count = 0; // initialize count
+        //     var timerElement = document.getElementById("timer");
+        //     var countElement = document.getElementById("count");
+        //     countElement.innerText = count; // Initially set to 0
+
+        //     function calibrate() {
+        //         if (count < 60) {
+        //             setTimeout(calibrate, 5000); // schedule the next call
+        //             resetTimer(); // reset and start the timer
+        //         }
+        //         recordGroupCalibrationSingle(); // call your calibration function
+        //         count++; // increment the count
+        //         countElement.innerText = count; // update the count display
+        //     }
+
+        //     function resetTimer() {
+        //         var timeLeft = 3;
+        //         timerElement.innerText = timeLeft; // set timer to 3 seconds
+        //         var timerId = setInterval(function() {
+        //             timeLeft--;
+        //             timerElement.innerText = timeLeft;
+        //             if (timeLeft <= 0) {
+        //                 clearInterval(timerId); // stop the timer
+        //             }
+        //         }, 1000);
+        //     }
+
+        //     calibrate(); // start the calibration process
+        // });
+        // document.getElementById("calibrateGroupButtonSingleRepeat").addEventListener("click", function() {
+        //     var count = 0; // initialize count
+        //     var timerElement = document.getElementById("timer");
+        //     var countElement = document.getElementById("count");
+        //     countElement.innerText = count; // Initially set to 0
+
+        //     function resetTimer() {
+        //         var timeLeft = 5;
+        //         if (count < 60) {
+        //             timerElement.innerText = timeLeft; // set timer to 3 seconds
+        //             var timerId = setInterval(function() {
+        //                 timeLeft--;
+        //                 timerElement.innerText = timeLeft;
+        //                 if (timeLeft <= 0) {
+        //                     recordGroupCalibrationSingle();
+        //                     clearInterval(timerId); // stop the timer
+        //                 }
+        //             }, 1000);
+        //             count++; // increment the count
+        //             countElement.innerText = count;
+        //         }
+        //     }
+
+        //     resetTimer(); // start the calibration process
+        // });
+
+        document.getElementById("calibrateGroupButtonSingleRepeat").addEventListener("click", function() {
+            var count = 0;  // Initialize count
+            var timerElement = document.getElementById("timer_repeat");
+            var countElement = document.getElementById("count");
+            countElement.innerText = count; // Display initial count (0)
+
+            function resetTimer() {
+                var timeLeft = 5;  // Set countdown duration to 3 seconds
+                timerElement.innerText = timeLeft; // Display initial timer value
+
+                // Start countdown
+                var timerId = setInterval(function() {
+                    timeLeft--;  // Decrement the timer
+                    timerElement.innerText = timeLeft; // Update the display each second
+                    console.log(timeLeft)
+                    if (timeLeft === 0) {
+                        clearInterval(timerId);  // Stop the timer when it reaches zero
+                        recordGroupCalibrationSingle(); // Call your function
+                        count++;  // Increment the count after each complete countdown
+                        countElement.innerText = count; // Update the displayed count
+
+                        if (count < 60) {
+                            resetTimer(); // Reset the timer if count is less than 60
+                        }
+                    }
+                }, 1000);
+            }
+
+            resetTimer(); // Start the calibration process
+        });
+
+        function recordCalibrationSingle() {
+            // Prepare data to send to the Flask endpoint
+            const subjectNumber = document.getElementById("subjectNumber").value;
+            const actionNumber = document.getElementById("actionNumber").value;
+            const durationNumber = document.getElementById("durationNumber").value;
+            const cameraNumber = document.getElementById("cameraNumber").value;
+            const data = {
+                subjectNumber: subjectNumber,
+                actionNumber: actionNumber,
+                durationNumber: durationNumber,
+                cameraNumber: cameraNumber
+            };
+
+            // Send a POST request to Flask endpoint
+            fetch('/record_calibration_single', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Handle success (e.g., display a success message)
+                    console.log('Calibration recorded successfully.');
+                } else {
+                    // Handle failure (e.g., display an error message)
+                    console.error('Calibration recording failed.');
+                }
+            })
+            .catch(error => {
+                console.error('An error occurred:', error);
+            });
+        }
+
+        function recordGroupCalibrationSingle() {
+            // Prepare data to send to the Flask endpoint
+            const subjectNumber = document.getElementById("subjectNumber").value;
+            const actionNumber = document.getElementById("actionNumber").value;
+            const durationNumber = document.getElementById("durationNumber").value;
+            const cameraNumber = document.getElementById("cameraNumber").value;
+            const cameraNumber2 = document.getElementById("cameraNumber2").value;
+            const data = {
+                subjectNumber: subjectNumber,
+                actionNumber: actionNumber,
+                durationNumber: durationNumber,
+                cameraNumber: cameraNumber,
+                cameraNumber2: cameraNumber2
+            };
+
+            // Send a POST request to Flask endpoint
+            fetch('/record_group_calibration_single', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Handle success (e.g., display a success message)
+                    console.log('Calibration recorded successfully.');
+                } else {
+                    // Handle failure (e.g., display an error message)
+                    console.error('Calibration recording failed.');
+                }
+            })
+            .catch(error => {
+                console.error('An error occurred:', error);
+            });
+        }
+
+        document.getElementById("transferAllButton").addEventListener("click", function() {
+            // Prepare data to send to the Flask endpoint
+
+            const cameraNumber = document.getElementById("cameraNumber").value;
+            const data = {
+                cameraNumber: cameraNumber
+            };
+
+            // Send a POST request to Flask endpoint
+            fetch('/transfer_all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Handle success (e.g., display a success message)
+                    console.log('transfered successfully.');
+                } else {
+                    // Handle failure (e.g., display an error message)
+                    console.error('transfer failed.');
+                }
+            })
+            .catch(error => {
+                console.error('An error occurred:', error);
+            });
+        });
+
+        // Function to handle the "Transfer Video" button click
+        document.getElementById('transferVideoButton').addEventListener('click', function () {
+            // Add your logic here to transfer the recorded video
+            // You can use a fetch request or another method to send the video to the desired location.
+            // For example:
+            fetch('/transfer_video', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    // Include any necessary data to identify and transfer the video
+                    // You might need to specify the filename or other details here
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Handle success, e.g., display a success message to the user
+                    console.log('Video transfer successful');
+                } else {
+                    // Handle failure, e.g., display an error message to the user
+                    console.error('Video transfer failed');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+
+        function handleStreamButtonClick(cameras, isStartButton) {
+            const action = isStartButton ? 'start' : 'stop';
+            fetch('/' + action + '_stream', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ cameras })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('streaming').innerText = isStartButton ? 'true' : 'false';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function handleRecordingButtonClick(isStartButton) {
+            const action = isStartButton ? 'start' : 'stop';
+            const subjectNumber = document.getElementById('subjectNumber').value;
+            const actionNumber = parseInt(document.getElementById('actionNumber').value);
+            const durationNumber = parseInt(document.getElementById('durationNumber').value);
+
+
+            fetch('/' + action + '_recording', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    subjectNumber,
+                    actionNumber,
+                    durationNumber
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('recording').innerText = isStartButton ? 'true' : 'false';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        let isStreaming = false;
+
+        let frameFetchingInterval = null;
+
+        function startFetchingFrames() {
+            if (!frameFetchingInterval){
+                isStreaming = true
+                frameFetchingInterval = setInterval(() => {
+                    // Fetch frame values for the 6 images
+                    fetchFrames();
+                }, 3000); // Fetch frames every 5 seconds (5000 milliseconds)
+            }
+        }
+
+        // Function to stop fetching frames
+        function stopFetchingFrames() {
+            clearInterval(frameFetchingInterval);
+            frameFetchingInterval = null;
+        }
+
+        function fetchFrames() {
+            if (isStreaming) {
+                for (let i = 0; i < 6; i++) {
+                    const imageElement = document.getElementById(`image${i}`);
+                    if (imageElement) {
+                        fetch(`/get_frame_data/${i}`, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.frameData) {
+                                if (isStreaming) {
+                                    imageElement.src = `data:image/jpeg;base64,${data.frameData}`;
+                                } else {
+                                    // Display placeholder.jpg when not streaming
+                                    imageElement.src = 'placeholder.jpg';
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching frames:', error);
+                        });
+                    }
+                }
+            }
+        }
+
+        // Function to handle the "Start Stream" button click for cameras 0, 1, and 2
+        document.getElementById('startButton').addEventListener('click', () => {
+            isStreaming = true;
+            handleStreamButtonClick([0, 1, 2, 3, 4, 5], true);
+            startFetchingFrames();
+        });
+
+        // Function to handle the "Stop Stream" button click for cameras 0, 1, and 2
+        document.getElementById('stopButton').addEventListener('click', () => {
+            isStreaming = false;
+            handleStreamButtonClick([0, 1, 2, 3, 4, 5], false);
+            stopFetchingFrames();
+
+            // Update all image elements to display 'placeholder.jpg'
+            for (let i = 0; i < 6; i++) {
+                const imageElement = document.getElementById(`image${i}`);
+                if (imageElement) {
+                    imageElement.src = "{{ url_for('static', filename='placeholder.jpg') }}";
+                }
+            }
+        });
+
+        
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Listen for keydown events on the entire document
+            document.addEventListener('keydown', function(event) {
+                // Check if the Enter key is pressed for the first button
+                if (event.key === 'M' || event.key === 'm') {
+                    // Prevent default action to avoid any undesired behavior (optional)
+                    event.preventDefault();
+                    // Trigger click on calibrateButtonSingle
+                    document.getElementById("calibrateButtonSingle").click();
+                }
+                
+                // Check if the Shift key is pressed for the second button
+                // Note: Shift key as a sole trigger might interfere with normal browser or OS shortcuts
+                // You might want to consider using a combination of keys or another key
+                if (event.key === 'Z' || event.key === 'z') {
+                    // Prevent default action here as well, if necessary
+                    event.preventDefault();
+                    // Trigger click on calibrateGroupButton
+                    document.getElementById("calibrateGroupButtonSingle").click();
+                }
+            });
+
+            // document.getElementById("calibrateButtonSingle").addEventListener("click", function() {
+            //     // Start the calibration function for single
+            //     recordCalibrationSingle();
+            // });
+
+            // document.getElementById("calibrateGroupButton").addEventListener("click", function() {
+            //     // Start the calibration function for group
+            //     recordGroupCalibrationSingle();
+            // });
+        });
+
+
+    </script>
+</body>
+</html>

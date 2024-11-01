@@ -1,0 +1,109 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+}
+
+nav {
+    background-color: #333;
+    text-align: center;
+    padding: 10px 0;
+}
+
+nav button {
+    background-color: #444;
+    border: none;
+    color: #fff;
+    padding: 10px 20px;
+    margin: 5px;
+    cursor: pointer;
+}
+
+main {
+    padding: 20px;
+}
+
+h2 {
+    font-size: 1.5em;
+}
+
+.form-group {
+    margin-bottom: 10px;
+}
+
+form label {
+    display: block;
+}
+
+form input[type="number"] {
+    width: 20%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.styled-input {
+    width: 20%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px; /* Adjust font size as needed */
+}
+
+/* Style select dropdown arrow */
+.styled-input select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: url('down-arrow.png') no-repeat right center; /* You can replace 'down-arrow.png' with your custom arrow icon */
+    padding-right: 20px; /* Adjust the padding to accommodate the arrow icon */
+    cursor: pointer;
+}
+
+form button {
+    background-color: #444;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.circle {
+    width: 45px; /* Adjust the size as needed */
+    height: 45px; /* Adjust the size as needed */
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 20px; /* Increase the margin for more padding */
+    margin-top: 20px;
+    background-color: red;
+}
+
+.circle.green {
+    background-color: green;
+}
+
+.circle.red {
+    background-color: red;
+}
+
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.video-grid img {
+    width: 30vw; /* 30% of the viewport width */
+    height: 20vw; /* 20% of the viewport width (adjust as needed) */
+    object-fit: contain; /* Ensure the entire content is visible without stretching */
+}
